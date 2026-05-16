@@ -25,7 +25,6 @@ jobs:
         uses: tj-actions/changed-files@v45
         with:
           files: "ADR/**/*.md"
-          separator: "\n"
 
       - name: Build comment body
         if: steps.changed.outputs.any_changed == 'true'
@@ -33,27 +32,22 @@ jobs:
         env:
           CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
         run: |
-          body=""
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            filename=$(basename "$file")
-            dirpath=$(dirname "$file")
-            body+="<details>"
-            body+="<summary>📄 <code>${file}</code></summary>"
-            body+=$'\n\n'
-            body+=$(cat "$file")
-            body+=$'\n\n'
-            body+="</details>"
-            body+=$'\n\n'
-          done <<< "$CHANGED_FILES"
-
           {
             echo "body<<ENDOFCOMMENT"
             echo "## 📖 Markdown Preview"
             echo ""
             echo "変更された Markdown ファイルのレンダリングプレビューです。"
             echo ""
-            echo "$body"
+            for file in $CHANGED_FILES; do
+              [ -z "$file" ] && continue
+              echo "<details>"
+              echo "<summary>📄 <code>${file}</code></summary>"
+              echo ""
+              cat "$file"
+              echo ""
+              echo "</details>"
+              echo ""
+            done
             echo "ENDOFCOMMENT"
           } >> "$GITHUB_OUTPUT"
 
