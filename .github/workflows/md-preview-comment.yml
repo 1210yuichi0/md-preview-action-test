@@ -4,7 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - "**/*.md"
+      - "ADR/**/*.md"
+
+concurrency:
+  group: md-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -20,7 +24,7 @@ jobs:
         id: changed
         uses: tj-actions/changed-files@v45
         with:
-          files: "**/*.md"
+          files: "ADR/**/*.md"
           separator: "\n"
 
       - name: Build comment body
