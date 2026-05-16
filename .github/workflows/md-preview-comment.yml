@@ -32,17 +32,24 @@ jobs:
         env:
           CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
         run: |
-          # Build file index table
+          # Collect metrics
+          total_files=0
+          total_lines=0
+          total_chars=0
           table_header="| # | ファイル | 行数 |"
           table_sep="|---|---------|------|"
           table_rows=""
-          idx=0
           for file in $CHANGED_FILES; do
             [ -z "$file" ] && continue
-            idx=$((idx + 1))
+            total_files=$((total_files + 1))
             lines=$(wc -l < "$file" | tr -d ' ')
-            table_rows+="| ${idx} | \`${file}\` | ${lines} |"$'\n'
+            chars=$(wc -m < "$file" | tr -d ' ')
+            total_lines=$((total_lines + lines))
+            total_chars=$((total_chars + chars))
+            table_rows+="| ${total_files} | \`${file}\` | ${lines} |"$'\n'
           done
+          read_min=$(( (total_chars + 499) / 500 ))
+          [ "$read_min" -lt 1 ] && read_min=1
 
           # Build details sections
           details=""
@@ -63,6 +70,8 @@ jobs:
             echo "## 📖 Markdown Preview"
             echo ""
             echo "変更された Markdown ファイルのレンダリングプレビューです。"
+            echo ""
+            echo "📊 **${total_files} files** · **${total_lines} lines** · ~${read_min} min read"
             echo ""
             echo "$table_header"
             echo "$table_sep"
