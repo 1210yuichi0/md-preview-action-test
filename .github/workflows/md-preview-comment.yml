@@ -41,9 +41,13 @@ jobs:
             for file in $CHANGED_FILES; do
               [ -z "$file" ] && continue
               echo "<details>"
-              echo "<summary>📄 <code>${file}</code></summary>"
+              echo "<summary><h3>📄 ${file}</h3></summary>"
+              echo ""
+              echo "---"
               echo ""
               cat "$file"
+              echo ""
+              echo "---"
               echo ""
               echo "</details>"
               echo ""
