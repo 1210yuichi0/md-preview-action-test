@@ -1,0 +1,61 @@
+name: Markdown Preview Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "**/*.md"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  md-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed markdown files
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: "**/*.md"
+          separator: "\n"
+
+      - name: Build comment body
+        if: steps.changed.outputs.any_changed == 'true'
+        id: comment
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
+        run: |
+          body=""
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            filename=$(basename "$file")
+            dirpath=$(dirname "$file")
+            body+="<details>"
+            body+="<summary>📄 <code>${file}</code></summary>"
+            body+=$'\n\n'
+            body+=$(cat "$file")
+            body+=$'\n\n'
+            body+="</details>"
+            body+=$'\n\n'
+          done <<< "$CHANGED_FILES"
+
+          {
+            echo "body<<ENDOFCOMMENT"
+            echo "## 📖 Markdown Preview"
+            echo ""
+            echo "変更された Markdown ファイルのレンダリングプレビューです。"
+            echo ""
+            echo "$body"
+            echo "ENDOFCOMMENT"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post or update PR comment
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: md-preview
+          message: ${{ steps.comment.outputs.body }}
