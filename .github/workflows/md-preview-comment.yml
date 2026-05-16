@@ -32,26 +32,44 @@ jobs:
         env:
           CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
         run: |
+          # Build file index table
+          table_header="| # | ファイル | 行数 |"
+          table_sep="|---|---------|------|"
+          table_rows=""
+          idx=0
+          for file in $CHANGED_FILES; do
+            [ -z "$file" ] && continue
+            idx=$((idx + 1))
+            lines=$(wc -l < "$file" | tr -d ' ')
+            table_rows+="| ${idx} | \`${file}\` | ${lines} |"$'\n'
+          done
+
+          # Build details sections
+          details=""
+          idx=0
+          for file in $CHANGED_FILES; do
+            [ -z "$file" ] && continue
+            idx=$((idx + 1))
+            details+="<details>"$'\n'
+            details+="<summary><b>${idx}. 📄 ${file}</b></summary>"$'\n'
+            details+=$'\n'
+            details+=$(cat "$file")
+            details+=$'\n\n'
+            details+="</details>"$'\n\n'
+          done
+
           {
             echo "body<<ENDOFCOMMENT"
             echo "## 📖 Markdown Preview"
             echo ""
             echo "変更された Markdown ファイルのレンダリングプレビューです。"
             echo ""
-            for file in $CHANGED_FILES; do
-              [ -z "$file" ] && continue
-              echo "<details>"
-              echo "<summary><h3>📄 ${file}</h3></summary>"
-              echo ""
-              echo "---"
-              echo ""
-              cat "$file"
-              echo ""
-              echo "---"
-              echo ""
-              echo "</details>"
-              echo ""
-            done
+            echo "$table_header"
+            echo "$table_sep"
+            echo "$table_rows"
+            echo "---"
+            echo ""
+            echo "$details"
             echo "ENDOFCOMMENT"
           } >> "$GITHUB_OUTPUT"
 
