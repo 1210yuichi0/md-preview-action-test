@@ -32,15 +32,18 @@ jobs:
         env:
           CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
         run: |
-          # Collect metrics
+          delimiter="ENDOFCOMMENT_$(date +%s)"
+
           total_files=0
           total_lines=0
           total_chars=0
-          table_header="| # | ファイル | 行数 |"
-          table_sep="|---|---------|------|"
           table_rows=""
+          file_list=()
+
           for file in $CHANGED_FILES; do
             [ -z "$file" ] && continue
+            [ -f "$file" ] || continue
+            file_list+=("$file")
             total_files=$((total_files + 1))
             lines=$(wc -l < "$file" | tr -d ' ')
             chars=$(wc -m < "$file" | tr -d ' ')
@@ -48,38 +51,43 @@ jobs:
             total_chars=$((total_chars + chars))
             table_rows+="| ${total_files} | \`${file}\` | ${lines} |"$'\n'
           done
+
           read_min=$(( (total_chars + 499) / 500 ))
           [ "$read_min" -lt 1 ] && read_min=1
 
-          # Build details sections
-          details=""
-          idx=0
-          for file in $CHANGED_FILES; do
-            [ -z "$file" ] && continue
-            idx=$((idx + 1))
-            details+="<details>"$'\n'
-            details+="<summary><b>${idx}. 📄 ${file}</b></summary>"$'\n'
-            details+=$'\n'
-            details+=$(cat "$file")
-            details+=$'\n\n'
-            details+="</details>"$'\n\n'
-          done
-
           {
-            echo "body<<ENDOFCOMMENT"
+            echo "body<<${delimiter}"
             echo "## 📖 Markdown Preview"
             echo ""
             echo "変更された Markdown ファイルのレンダリングプレビューです。"
             echo ""
             echo "📊 **${total_files} files** · **${total_lines} lines** · ~${read_min} min read"
             echo ""
-            echo "$table_header"
-            echo "$table_sep"
-            echo "$table_rows"
+            echo "| # | ファイル | 行数 |"
+            echo "|---|---------|------|"
+            printf "%s" "$table_rows"
+            echo ""
             echo "---"
             echo ""
-            echo "$details"
-            echo "ENDOFCOMMENT"
+
+            idx=0
+            for file in "${file_list[@]}"; do
+              idx=$((idx + 1))
+              label="${idx}. 📄 ${file} "
+              label_len=${#label}
+              pad_len=$((60 - label_len))
+              [ "$pad_len" -lt 4 ] && pad_len=4
+              separator=$(printf '=%.0s' $(seq 1 $pad_len))
+              echo "<details>"
+              echo "<summary><b>${label}${separator}</b></summary>"
+              echo ""
+              cat "$file"
+              echo ""
+              echo "</details>"
+              echo ""
+            done
+
+            echo "${delimiter}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Post or update PR comment
