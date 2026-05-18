@@ -70,26 +70,20 @@ jobs:
             echo "---"
             echo ""
 
-            max_len=0
-            idx=0
+            max_path_len=0
             for file in "${file_list[@]}"; do
-              idx=$((idx + 1))
-              label="${idx}. 📄 ${file} "
-              label_len=${#label}
-              [ "$label_len" -gt "$max_len" ] && max_len=$label_len
+              [ "${#file}" -gt "$max_path_len" ] && max_path_len=${#file}
             done
-            total_width=$((max_len + 10))
+            sep_len=10
 
             idx=0
             for file in "${file_list[@]}"; do
               idx=$((idx + 1))
-              label="${idx}. 📄 ${file} "
-              label_len=${#label}
-              pad_len=$((total_width - label_len))
-              [ "$pad_len" -lt 4 ] && pad_len=4
-              separator=$(printf '=%.0s' $(seq 1 $pad_len))
+              pad_count=$((max_path_len - ${#file}))
+              padding=$(printf ' %.0s' $(seq 1 $((pad_count + 1))) 2>/dev/null || echo " ")
+              separator=$(printf '=%.0s' $(seq 1 $sep_len))
               echo "<details>"
-              echo "<summary><b>${label}${separator}</b></summary>"
+              echo "<summary><code><b>${idx}. ${file}${padding}${separator}</b></code></summary>"
               echo ""
               cat "$file"
               echo ""
