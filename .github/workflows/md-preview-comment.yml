@@ -74,7 +74,7 @@ jobs:
             for file in "${file_list[@]}"; do
               [ "${#file}" -gt "$max_path_len" ] && max_path_len=${#file}
             done
-            sep_len=10
+            sep_len=30
 
             idx=0
             for file in "${file_list[@]}"; do
