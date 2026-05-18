@@ -33,6 +33,8 @@ jobs:
           CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
         run: |
           delimiter="ENDOFCOMMENT_$(date +%s)"
+          colors=("🟦" "🟧" "🟩" "🟪" "🟥" "🟨" "⬜" "🟫" "⬛")
+          color_count=${#colors[@]}
 
           total_files=0
           total_lines=0
@@ -44,12 +46,14 @@ jobs:
             [ -z "$file" ] && continue
             [ -f "$file" ] || continue
             file_list+=("$file")
+            color_idx=$((total_files % color_count))
+            color=${colors[$color_idx]}
             total_files=$((total_files + 1))
             lines=$(wc -l < "$file" | tr -d ' ')
             chars=$(wc -m < "$file" | tr -d ' ')
             total_lines=$((total_lines + lines))
             total_chars=$((total_chars + chars))
-            table_rows+="| ${total_files} | \`${file}\` | ${lines} |"$'\n'
+            table_rows+="| ${color} | ${total_files} | \`${file}\` | ${lines} |"$'\n'
           done
 
           read_min=$(( (total_chars + 499) / 500 ))
@@ -63,27 +67,20 @@ jobs:
             echo ""
             echo "📊 **${total_files} files** · **${total_lines} lines** · ~${read_min} min read"
             echo ""
-            echo "| # | ファイル | 行数 |"
-            echo "|---|---------|------|"
+            echo "| ■ | # | ファイル | 行数 |"
+            echo "|---|---|---------|------|"
             printf "%s" "$table_rows"
             echo ""
             echo "---"
             echo ""
 
-            max_path_len=0
-            for file in "${file_list[@]}"; do
-              [ "${#file}" -gt "$max_path_len" ] && max_path_len=${#file}
-            done
-            sep_len=30
-
             idx=0
             for file in "${file_list[@]}"; do
+              color_idx=$((idx % color_count))
+              color=${colors[$color_idx]}
               idx=$((idx + 1))
-              pad_count=$((max_path_len - ${#file}))
-              padding=$(printf ' %.0s' $(seq 1 $((pad_count + 1))) 2>/dev/null || echo " ")
-              separator=$(printf '=%.0s' $(seq 1 $sep_len))
               echo "<details>"
-              echo "<summary><code><b>${idx}. ${file}${padding}${separator}</b></code></summary>"
+              echo "<summary><code><b>${color} ${idx}. ${file}</b></code></summary>"
               echo ""
               cat "$file"
               echo ""
